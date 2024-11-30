@@ -1,8 +1,7 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
+const atlasUri = require('../utils/mongoConnection')
 
-const atlasUri = 'mongodb+srv://marcussalopaso1:zedmain1525@cluster0.m8fd2iw.mongodb.net/StudySync';
-
-mongoose.connect(atlasUri?.toString())
+mongoose.connect(atlasUri?.default)
   .then(() => {
     console.log("Connected to MongoDB Atlas (acc)");
 
@@ -10,6 +9,7 @@ mongoose.connect(atlasUri?.toString())
   .catch((e) => {
     console.error("Error connecting to MongoDB Atlas:", e);
   });
+
 
 const mySchema = new mongoose.Schema({
   Email: {
@@ -35,9 +35,17 @@ const mySchema = new mongoose.Schema({
     type: Boolean,
     required: true,
   },
+  interests: {
+    type: Array,
+  },
+  education_level: {
+    type: String,
+  },
+  friends: {
+    type: Array,
+  },
 });
-
 
 const ACCcollection = mongoose.model('account', mySchema);
 
-export default ACCcollection;
+module.exports = ACCcollection;
