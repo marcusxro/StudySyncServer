@@ -43,6 +43,7 @@ const Hobbies = require('./routes/Hobbies')
 const UpdateAccount = require('./routes/UpdateAccount')
 const Register = require('./routes/Register')
 const GetPfp = require('./routes/GetPfp')
+const ContactMsgRoute = require('./routes/PostContact')
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -95,7 +96,10 @@ app.use('/updateAccount', UpdateAccount);
 app.use('/createAndUploadUser', accountsRouter);
 
 app.use('/getHobbies', Hobbies);
+
 app.use('/user', GetPfp);
+
+app.use('/contact', ContactMsgRoute);
 
 
 
