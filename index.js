@@ -108,101 +108,168 @@ app.use('/contact', ContactMsgRoute);
 
 app.use(express.static(path.join(__dirname, '../client'))); // Serve frontend files
 
-const usersByInterest = {}; // { '3d printing': [socket1, socket2], ... }
+// const usersByInterest = {}; // { '3d printing': [socket1, socket2], ... }
 
-const rooms = {}
+// const rooms = {}
 
-io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+// io.on('connection', (socket) => {
+//   console.log('A user connected:', socket.id);
 
 
-  socket.on('set-interest', (interest, callback) => {
-    // Ensure the interest group exists
-    if (!usersByInterest[interest]) {
-      usersByInterest[interest] = [];
+//   socket.on('set-interest', (interest, callback) => {
+//     // Ensure the interest group exists
+//     if (!usersByInterest[interest]) {
+//       usersByInterest[interest] = [];
+//     }
+
+//     // Find a room with space
+//     const availableRoom = usersByInterest[interest].find(
+//       (room) => room.users.length < 2 && !room.isFull
+//     );
+
+//     if (availableRoom) {
+//       // Add the user to the available room
+//       availableRoom.users.push(socket.id);
+//       socket.join(availableRoom.roomUID);
+//       socket.interest = interest;
+//       socket.roomUID = availableRoom.roomUID;
+
+//       console.log(`User ${socket.id} joined room: ${availableRoom.roomUID}`);
+//       callback({ success: true, roomUID: availableRoom.roomUID });
+
+//       // Notify other users in the room
+//       io.to(availableRoom.roomUID).emit('room-uid', { roomUID: availableRoom.roomUID });
+
+//       // Lock the room if it's now full
+//       if (availableRoom.users.length === 2) {
+//         availableRoom.isFull = true;
+//         console.log(`Room ${availableRoom.roomUID} is now full.`);
+//       }
+//     } else {
+//       // Create a new room for the user
+//       const roomUID = `${interest}-${socket.id}-${Date.now()}`;
+//       usersByInterest[interest].push({
+//         roomUID,
+//         users: [socket.id],
+//         isFull: false,
+//       });
+
+//       socket.join(roomUID);
+//       socket.interest = interest;
+//       socket.roomUID = roomUID;
+
+//       console.log(`User ${socket.id} created a new room: ${roomUID}`);
+//       callback({ success: true, roomUID });
+//     }
+//   });
+
+//   // Cleanup logic remains the same as before
+//   socket.on('disconnect', () => {
+//     const { interest, roomUID } = socket;
+//     if (interest && roomUID) {
+//       const room = usersByInterest[interest]?.find((r) => r.roomUID === roomUID);
+
+//       if (room) {
+//         // Remove the user from the room
+//         room.users = room.users.filter((id) => id !== socket.id);
+
+//         // If the room is empty, delete it
+//         if (room.users.length === 0) {
+//           usersByInterest[interest] = usersByInterest[interest].filter(
+//             (r) => r.roomUID !== roomUID
+//           );
+//           console.log(`Room ${roomUID} deleted.`);
+//         } else {
+//           // Unlock the room if it's no longer full
+//           room.isFull = false;
+//           console.log(`Room ${roomUID} is no longer full.`);
+//         }
+//       }
+//     }
+//     console.log(`User ${socket.id} disconnected.`);
+//   });
+
+
+//   socket.on('send-message', (message) => {
+//     const interest = socket.interest;
+//     if (interest) {
+//       console.log(`Message from ${socket.id} to ${interest}:`, message);
+
+//       // Broadcast message to users in the same interest group
+//       socket.to(interest).emit('receive-message', {
+//         from: socket.id,
+//         message, 
+//       });
+//     }
+//   });
+// });
+// Rooms mapping
+const roomsByInterest = {};
+const usersInRooms = {}; // Keeps track of users in each room
+
+
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
+
+  socket.on("join_interest", ({ interest, userInfo }) => {
+    let roomID;
+
+    if (!roomsByInterest[interest]) {
+      roomsByInterest[interest] = [];
     }
 
-    // Find a room with space
-    const availableRoom = usersByInterest[interest].find(
-      (room) => room.users.length < 2 && !room.isFull
+    const existingRoom = roomsByInterest[interest].find(
+      (room) => io.sockets.adapter.rooms.get(room)?.size < 2
     );
 
-    if (availableRoom) {
-      // Add the user to the available room
-      availableRoom.users.push(socket.id);
-      socket.join(availableRoom.roomUID);
-      socket.interest = interest;
-      socket.roomUID = availableRoom.roomUID;
-
-      console.log(`User ${socket.id} joined room: ${availableRoom.roomUID}`);
-      callback({ success: true, roomUID: availableRoom.roomUID });
-
-      // Notify other users in the room
-      io.to(availableRoom.roomUID).emit('room-uid', { roomUID: availableRoom.roomUID });
-
-      // Lock the room if it's now full
-      if (availableRoom.users.length === 2) {
-        availableRoom.isFull = true;
-        console.log(`Room ${availableRoom.roomUID} is now full.`);
-      }
+    if (existingRoom) {
+      roomID = existingRoom;
     } else {
-      // Create a new room for the user
-      const roomUID = `${interest}-${socket.id}-${Date.now()}`;
-      usersByInterest[interest].push({
-        roomUID,
-        users: [socket.id],
-        isFull: false,
-      });
-
-      socket.join(roomUID);
-      socket.interest = interest;
-      socket.roomUID = roomUID;
-
-      console.log(`User ${socket.id} created a new room: ${roomUID}`);
-      callback({ success: true, roomUID });
+      roomID = `${interest}_${Date.now()}`;
+      roomsByInterest[interest].push(roomID);
     }
+
+    socket.join(roomID);
+
+    // Track user info in the room
+    if (!usersInRooms[roomID]) {
+      usersInRooms[roomID] = [];
+    }
+    usersInRooms[roomID].push({ ...userInfo });
+
+    console.log(userInfo)
+    // Notify the client of the room assignment
+  
+
+      io.to(roomID).emit("room_joined", {
+        roomID,
+        users: usersInRooms[roomID],
+      });
+    
+    console.log(`User ${socket.id} joined room: ${roomID}`);
   });
 
-  // Cleanup logic remains the same as before
-  socket.on('disconnect', () => {
-    const { interest, roomUID } = socket;
-    if (interest && roomUID) {
-      const room = usersByInterest[interest]?.find((r) => r.roomUID === roomUID);
+  socket.on("disconnect", () => {
+    console.log("A user disconnected:", socket.id);
 
-      if (room) {
-        // Remove the user from the room
-        room.users = room.users.filter((id) => id !== socket.id);
-
-        // If the room is empty, delete it
-        if (room.users.length === 0) {
-          usersByInterest[interest] = usersByInterest[interest].filter(
-            (r) => r.roomUID !== roomUID
-          );
-          console.log(`Room ${roomUID} deleted.`);
-        } else {
-          // Unlock the room if it's no longer full
-          room.isFull = false;
-          console.log(`Room ${roomUID} is no longer full.`);
-        }
+    // Remove user from rooms
+    for (const [roomID, userList] of Object.entries(usersInRooms)) {
+      usersInRooms[roomID] = userList.filter((user) => user.userId !== socket.id);
+      if (usersInRooms[roomID].length === 0) {
+        delete usersInRooms[roomID];
       }
     }
-    console.log(`User ${socket.id} disconnected.`);
-  });
 
-
-  socket.on('send-message', (message) => {
-    const interest = socket.interest;
-    if (interest) {
-      console.log(`Message from ${socket.id} to ${interest}:`, message);
-
-      // Broadcast message to users in the same interest group
-      socket.to(interest).emit('receive-message', {
-        from: socket.id,
-        message,
-      });
+    // Remove empty rooms
+    for (const [interest, rooms] of Object.entries(roomsByInterest)) {
+      roomsByInterest[interest] = rooms.filter((room) => io.sockets.adapter.rooms.get(room));
+      if (roomsByInterest[interest].length === 0) {
+        delete roomsByInterest[interest];
+      }
     }
   });
 });
+
 
 const PORT = 8080;
 server.listen(PORT, () => {
