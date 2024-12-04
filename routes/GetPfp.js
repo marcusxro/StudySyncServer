@@ -1,6 +1,8 @@
-const express = require('express');
+
+import cloudinary from '../utils/CloudinaryConfig.js'
+import express from 'express';
 const router = express.Router();
-const cloudinary = require('../utils/CloudinaryConfig');
+
 
 // Endpoint to get image by userId
 router.get('/:userId', async (req, res) => {
@@ -28,4 +30,4 @@ router.get('/:userId', async (req, res) => {
 });
 
 
-module.exports = router;
+export default router;

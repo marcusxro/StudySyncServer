@@ -1,8 +1,9 @@
 
-const express = require('express');
-const router = express.Router();
-const Contact = require('../collections/ContactMsg'); // Make sure to require your accounts model
 
+import Contact from '../collections/ContactMsg.js' // Make sure to require your accounts model
+
+import express from 'express';
+const router = express.Router();
 
 
 router.post('/', async (req, res) => {
@@ -32,4 +33,4 @@ router.post('/', async (req, res) => {
 
 });
 
-module.exports = router;
+export default router;

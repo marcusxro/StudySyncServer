@@ -1,8 +1,6 @@
-
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const accounts = require('../collections/Accounts'); // Make sure to require your accounts model
-
+import accounts from '../collections/Accounts.js'; // Import your accounts model
 
 
 router.put('/', async (req, res) => {
@@ -39,5 +37,4 @@ router.put('/', async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
-
-module.exports = router;
+export default router;

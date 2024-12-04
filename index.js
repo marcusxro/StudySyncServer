@@ -1,16 +1,18 @@
-const express = require('express');
+import express from 'express';
 const app = express();
 const port = 8080;
-const cors = require('cors');
-const dotenv = require('dotenv');
-const path = require('path');
+import cors from 'cors';
+import dotenv from 'dotenv';
+import path from 'path';
+
+
 dotenv.config();
 app.use(cors());
-const bodyParser = require('body-parser');
+
 
 //utils
-const { Server } = require('socket.io');
-const http = require('http');
+import { Server } from 'socket.io';
+import http from 'http';
 
 
 // Create an HTTP server
@@ -32,18 +34,17 @@ app.use((req, res, next) => {
 });
 
 //collections
-const accounts = require('./collections/Accounts');
+import accounts from './collections/Accounts.js';
 
+// routers
+import accountsRouter from './routes/UploadAndCreate.js';
+import accountsSingleRouter from './routes/AccountSingle.js';
+import Hobbies from './routes/Hobbies.js';
+import UpdateAccount from './routes/UpdateAccount.js ';
+import Register from './routes/Register.js';
+import GetPfp from './routes/GetPfp.js';
+import ContactMsgRoute from './routes/PostContact.js';
 
-
-//routers
-const accountsRouter = require('./routes/UploadAndCreate');
-const accountsSingleRouter = require('./routes/AccountSingle');
-const Hobbies = require('./routes/Hobbies')
-const UpdateAccount = require('./routes/UpdateAccount')
-const Register = require('./routes/Register')
-const GetPfp = require('./routes/GetPfp')
-const ContactMsgRoute = require('./routes/PostContact')
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -106,7 +107,8 @@ app.use('/contact', ContactMsgRoute);
 
 
 
-app.use(express.static(path.join(__dirname, '../client'))); // Serve frontend files
+// const __dirname = path.dirname(new URL(import.meta.url).pathname);
+// app.use(express.static(path.join(__dirname, '../client'))); // Serve frontend files
 
 // const usersByInterest = {}; // { '3d printing': [socket1, socket2], ... }
 

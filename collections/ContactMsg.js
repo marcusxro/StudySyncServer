@@ -1,7 +1,8 @@
-const mongoose = require('mongoose');
-const atlasUri = require('../utils/mongoConnection')
+import mongoose from 'mongoose';
 
-mongoose.connect(atlasUri?.default)
+
+
+mongoose.connect('mongodb+srv://marcussalopaso1:zedmain1525@cluster0.m8fd2iw.mongodb.net/StudySync')
   .then(() => {
     console.log("Connected to MongoDB Atlas (contact)");
 
@@ -36,4 +37,4 @@ const mySchema = new mongoose.Schema({
 
 const ACCcollection = mongoose.model('contactMsg', mySchema);
 
-module.exports = ACCcollection;
+export default ACCcollection;

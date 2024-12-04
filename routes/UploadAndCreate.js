@@ -1,8 +1,9 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const multer = require('multer');
-const cloudinary = require('../utils/CloudinaryConfig');
-const accounts = require('../collections/Accounts');
+import multer from 'multer';
+import cloudinary from '../utils/CloudinaryConfig.js';
+import accounts from '../collections/Accounts.js';
+
 
 const storage = multer.diskStorage({
     filename: (req, file, cb) => {
@@ -101,4 +102,5 @@ router.post('/', upload.single('profilePicture'), async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;
+

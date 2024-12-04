@@ -2476,4 +2476,4 @@ const interestArr = [
 	}
 ]
 
-module.exports = interestArr;
+export default interestArr;

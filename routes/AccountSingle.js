@@ -1,8 +1,7 @@
-
-
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const accounts = require('../collections/Accounts'); // Make sure to require your accounts model
+import accounts from '../collections/Accounts.js';
+
 
 
 router.post('/', async (req, res) => {
@@ -26,4 +25,4 @@ router.post('/', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;
