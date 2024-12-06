@@ -19,7 +19,7 @@ import http from 'http';
 const server = http.createServer(app); // Attach Express app to the HTTP server
 const io = new Server(server, {
   cors: {
-    origin: 'http://127.0.0.1:5500',
+    origin: '*',
   },
 });
 
@@ -87,8 +87,7 @@ app.use('/getAccountByUid', accountsSingleRouter);
 
 
 app.get('/', (req, res) => {
-  res.send('Hello Worlsd!');
-
+  res.send('Hello World!');
 });
 
 
@@ -205,25 +204,30 @@ app.use('/contact', ContactMsgRoute);
 //     }
 //   });
 // });
+
 // Rooms mapping
 const roomsByInterest = {};
 const usersInRooms = {}; // Keeps track of users in each room
 
+io.on('connection', (socket) => {
+  console.log("==========================================================");
+  console.log('A user connected:', socket.id);
 
-io.on("connection", (socket) => {
-  console.log("A user connected:", socket.id);
-
-  socket.on("join_interest", ({ interest, userInfo }) => {
+  // User joins a room based on their interest
+  socket.on('join_interest', ({ interest, userInfo }) => {
     let roomID;
 
+    // If the interest doesn't exist in the roomsByInterest, create it
     if (!roomsByInterest[interest]) {
       roomsByInterest[interest] = [];
     }
 
+    // Find an existing room with space (less than 2 users)
     const existingRoom = roomsByInterest[interest].find(
       (room) => io.sockets.adapter.rooms.get(room)?.size < 2
     );
 
+    // If a room exists, join it, otherwise create a new room
     if (existingRoom) {
       roomID = existingRoom;
     } else {
@@ -231,6 +235,7 @@ io.on("connection", (socket) => {
       roomsByInterest[interest].push(roomID);
     }
 
+    // Add the user to the room
     socket.join(roomID);
 
     // Track user info in the room
@@ -239,38 +244,81 @@ io.on("connection", (socket) => {
     }
     usersInRooms[roomID].push({ ...userInfo });
 
-    console.log(userInfo)
-    // Notify the client of the room assignment
-  
-
-      io.to(roomID).emit("room_joined", {
-        roomID,
-        users: usersInRooms[roomID],
-      });
-    
+    // Notify all users in the room about the updated user list
+    io.to(roomID).emit('room_joined', {
+      roomID,
+      users: usersInRooms[roomID],
+    });
+    console.log("==========================================================");
     console.log(`User ${socket.id} joined room: ${roomID}`);
   });
 
-  socket.on("disconnect", () => {
-    console.log("A user disconnected:", socket.id);
+  // Handle the user leaving the room
+  socket.on('user_left_room', ({ roomID, userId }) => {
+    console.log(`User ${userId} is leaving room ${roomID}`);
 
-    // Remove user from rooms
+    // Remove the user from the specific room
+    if (usersInRooms[roomID]) {
+      usersInRooms[roomID] = usersInRooms[roomID].filter(user => user.userId !== userId);
+
+      // Log the updated user list
+      console.log(`Updated users in room ${roomID}:`, usersInRooms[roomID]);
+
+      if (usersInRooms[roomID].length === 0) {
+        // If the room is empty, delete it from the rooms data
+        delete usersInRooms[roomID];
+        console.log(`Room ${roomID} is now empty and deleted.`);
+      } else {
+        // Emit the updated list of users to the remaining users in the room
+        io.to(roomID).emit('room_updated', {
+          roomID,
+          users: usersInRooms[roomID],
+        });
+        console.log("==========================================================");
+        console.log(`User ${userId} left room: ${roomID}`);
+        console.log("==========================================================");
+      }
+    }
+  });
+
+  // Handle user disconnection
+  socket.on('disconnect', () => {
+    console.log("==========================================================");
+    console.log('A user disconnected:', socket.id);
+
+    // Remove the user from all rooms they were in
     for (const [roomID, userList] of Object.entries(usersInRooms)) {
-      usersInRooms[roomID] = userList.filter((user) => user.userId !== socket.id);
+      usersInRooms[roomID] = userList.filter(user => user.userId !== socket.id);
+
+      // Log the updated user list
+      console.log(`Updated users in room ${roomID}:`, usersInRooms[roomID]);
+
       if (usersInRooms[roomID].length === 0) {
         delete usersInRooms[roomID];
+        console.log(`Room ${roomID} is now empty and deleted.`);
+      } else {
+        io.to(roomID).emit('room_updated', {
+          roomID,
+          users: usersInRooms[roomID],
+        });
+        console.log("==========================================================");
+        console.log(`User ${socket.id} left room: ${roomID}`);
+        console.log("==========================================================");
       }
     }
 
     // Remove empty rooms
     for (const [interest, rooms] of Object.entries(roomsByInterest)) {
-      roomsByInterest[interest] = rooms.filter((room) => io.sockets.adapter.rooms.get(room));
+      roomsByInterest[interest] = rooms.filter(room => io.sockets.adapter.rooms.get(room));
       if (roomsByInterest[interest].length === 0) {
         delete roomsByInterest[interest];
+        console.log(`No rooms left for interest ${interest}, deleting interest.`);
       }
     }
   });
 });
+
+
 
 
 const PORT = 8080;
