@@ -44,6 +44,8 @@ import UpdateAccount from './routes/UpdateAccount.js ';
 import Register from './routes/Register.js';
 import GetPfp from './routes/GetPfp.js';
 import ContactMsgRoute from './routes/PostContact.js';
+import ReportRouter from './routes/ReportUser.js';
+import AcvitiyPost from './routes/PostActivity.js';
 
 
 app.use(express.urlencoded({ extended: true }));
@@ -102,6 +104,9 @@ app.use('/user', GetPfp);
 app.use('/contact', ContactMsgRoute);
 
 
+app.use('/reportUser', ReportRouter);
+
+app.use('/postActivity', AcvitiyPost);
 
 
 
@@ -214,7 +219,7 @@ io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
   // User joins a room based on their interest
-  socket.on('join_interest', ({ interest, userInfo }) => {
+  socket.on("join_interest", ({ interest, userInfo }) => {
     let roomID;
 
     // If the interest doesn't exist in the roomsByInterest, create it
@@ -242,18 +247,142 @@ io.on('connection', (socket) => {
     if (!usersInRooms[roomID]) {
       usersInRooms[roomID] = [];
     }
+
+    // Add the new user to the room's user list
     usersInRooms[roomID].push({ ...userInfo });
 
     // Notify all users in the room about the updated user list
-    io.to(roomID).emit('room_joined', {
+    io.to(roomID).emit('room_updated', {
       roomID,
       users: usersInRooms[roomID],
     });
-    console.log("==========================================================");
+
     console.log(`User ${socket.id} joined room: ${roomID}`);
+
+    // Emit to the user who joined about the current room state
+    socket.emit('room_joined', {
+      roomID,
+      users: usersInRooms[roomID],
+    });
   });
 
-  // Handle the user leaving the room
+  // Handle friend request
+
+
+  socket.on('add_friend', ({ roomID, targetUserId, myUserId }) => {
+    console.log(`User ${myUserId} wants to add ${targetUserId} as a friend in room ${roomID}`);
+
+    console.log("==========================================================");
+    console.log(usersInRooms[roomID]?.find(user => user.userId === myUserId)?.displayName || 'Unknown')
+    // Emit the friend request to the target user
+    io.to(roomID).emit('friend_request', {
+      requesterId: myUserId,
+      targetId: targetUserId,
+      requesterName: usersInRooms[roomID]?.find(user => user.userId === myUserId)?.displayName || 'Unknown',
+    });
+  });
+
+
+
+  // Handle friend request response
+  socket.on('respond_friend_request', async ({ requesterId, targetId, response }) => {
+    if (response === undefined) {
+      console.log('No response provided for friend request.');
+      return; // Ensure no default decline happens
+    }
+    if (!['accept', 'decline'].includes(response)) {
+      console.log('Invalid response received.');
+      return;
+  }
+
+    try {
+      // If accepted, add each user to the other's friends array
+      if (response === 'accept') {
+        console.log(`User ${targetId} accepted friend request from ${requesterId}`);
+
+        const accepter = await accounts.findOne({ Uid: targetId });  // Target user accepting the request
+        const requester = await accounts.findOne({ Uid: requesterId });  // Requester sending the friend request
+
+        if (!accepter || !requester) {
+          console.error('One or both users not found for friend addition.');
+          return;
+        }
+
+        // Add requesterId to the target user's friends array
+        if (!accepter.friends.includes(requesterId)) {
+          accepter.friends.push(requesterId);
+          socket.to(requesterId).emit('friend_request_accepted', { friendId: targetId });
+          
+        }
+
+        // Add targetId to the requester's friends array
+        if (!requester.friends.includes(targetId)) {
+          requester.friends.push(targetId);
+          io.to(requesterId).emit('friend_request_accepted', { friendId: targetId });
+        }
+
+        // Save both users' updated friends list
+        await accepter.save();
+        await requester.save();
+
+
+       fetch('http://localhost:8080/postActivity', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            Uid: requesterId,
+            Message: `You and ${accepter.Username} are now friends!`,
+            Date: Date.now(),
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            console.log('Activity posted:', data)
+          })
+          .catch((error) => console.error('Error posting activity:', error));
+           
+          fetch('http://localhost:8080/postActivity', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              Uid: targetId,
+              Message: `You and ${requester.Username} are now friends!`,
+              Date: Date.now(),
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+              console.log('Activity posted:', data)
+            })
+            .catch((error) => console.error('Error posting activity:', error));
+             
+        
+
+        // Emit the events to notify both users
+       
+
+        socket.to(targetId).emit('friend_added', { friendId: requesterId });
+
+        console.log(`Friendship established between ${requesterId} and ${targetId}`);
+      } else {
+        // Decline the request if not accepted
+        socket.to(requesterId).emit('friend_request_declined', { targetId: targetId });
+
+        console.log(`User ${targetId} declined friend request from ${requesterId}`);
+      }
+    } catch (error) {
+      console.error('Error responding to friend request:', error);
+    }
+  });
+
+
+
   socket.on('user_left_room', ({ roomID, userId }) => {
     console.log(`User ${userId} is leaving room ${roomID}`);
 
