@@ -47,7 +47,9 @@ import ContactMsgRoute from './routes/PostContact.js';
 import ReportRouter from './routes/ReportUser.js';
 import AcvitiyPost from './routes/PostActivity.js';
 import ActivityGet from './routes/GetActivities.js';
-
+import PostSchedule from './routes/PostSchedule.js';
+import GetSchedule from './routes/GetSched.js';
+import SelectedUserSched from './routes/GetSchedByInvite.js';
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -110,6 +112,12 @@ app.use('/reportUser', ReportRouter);
 app.use('/postActivity', AcvitiyPost);
 
 app.use('/getActivity', ActivityGet);
+
+app.use('/postSchedule', PostSchedule);
+
+app.use('/getSchedule', GetSchedule);
+
+app.use('/getScheduleByInvite', SelectedUserSched);
 
 
 
