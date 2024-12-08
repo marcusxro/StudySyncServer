@@ -46,6 +46,7 @@ import GetPfp from './routes/GetPfp.js';
 import ContactMsgRoute from './routes/PostContact.js';
 import ReportRouter from './routes/ReportUser.js';
 import AcvitiyPost from './routes/PostActivity.js';
+import ActivityGet from './routes/GetActivities.js';
 
 
 app.use(express.urlencoded({ extended: true }));
@@ -108,6 +109,7 @@ app.use('/reportUser', ReportRouter);
 
 app.use('/postActivity', AcvitiyPost);
 
+app.use('/getActivity', ActivityGet);
 
 
 

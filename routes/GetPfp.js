@@ -11,7 +11,7 @@ router.get('/:userId', async (req, res) => {
     try {
 
         // Fetch the image details based on userId
-        const result = await cloudinary.default.search
+        const result = await cloudinary.search
             .expression(`folder:profile_pictures AND public_id:profile_pictures/${userId}`) // Match folder and public ID
             .max_results(1)                      // Limit results to one
             .execute();
