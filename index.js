@@ -23,11 +23,7 @@ const io = new Server(server, {
   },
 });
 
-
 app.use(express.static('client'));
-
-
-
 app.use((req, res, next) => {
   req.io = io;
   next();
@@ -50,11 +46,11 @@ import ActivityGet from './routes/GetActivities.js';
 import PostSchedule from './routes/PostSchedule.js';
 import GetSchedule from './routes/GetSched.js';
 import SelectedUserSched from './routes/GetSchedByInvite.js';
+import AcceptSchedRouter from './routes/AcceptSched.js';
+import UpdateProfilePic from './routes/UpdateProfilePic.js';
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
-
 
 // Middleware
 app.use(
@@ -65,17 +61,13 @@ app.use(
   })
 );
 
-
-
 app.use((req, res, next) => {
   console.log(`Request_Endpoint: ${req.method} ${req.url}`);
   next();
 });
 
 
-
 app.use('/register', Register);
-
 app.get('/getAllAccounts', (req, res) => {
   accounts.find()
     .then((accounts) => {
@@ -86,38 +78,25 @@ app.get('/getAllAccounts', (req, res) => {
     });
 });
 
-
 app.use('/getAccountByUid', accountsSingleRouter);
-
-
 
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
-
 app.use('/updateAccount', UpdateAccount);
-
 app.use('/createAndUploadUser', accountsRouter);
-
 app.use('/getHobbies', Hobbies);
-
 app.use('/user', GetPfp);
-
 app.use('/contact', ContactMsgRoute);
-
-
 app.use('/reportUser', ReportRouter);
-
 app.use('/postActivity', AcvitiyPost);
-
 app.use('/getActivity', ActivityGet);
-
 app.use('/postSchedule', PostSchedule);
-
 app.use('/getSchedule', GetSchedule);
-
 app.use('/getScheduleByInvite', SelectedUserSched);
+app.use('/acceptSchedule', AcceptSchedRouter);
+app.use('/updateProfilePic', UpdateProfilePic);
 
 
 
@@ -309,33 +288,26 @@ io.on('connection', (socket) => {
       // If accepted, add each user to the other's friends array
       if (response === 'accept') {
         console.log(`User ${targetId} accepted friend request from ${requesterId}`);
-
         const accepter = await accounts.findOne({ Uid: targetId });  // Target user accepting the request
         const requester = await accounts.findOne({ Uid: requesterId });  // Requester sending the friend request
-
         if (!accepter || !requester) {
           console.error('One or both users not found for friend addition.');
           return;
         }
-
         // Add requesterId to the target user's friends array
         if (!accepter.friends.includes(requesterId)) {
           accepter.friends.push(requesterId);
           socket.to(requesterId).emit('friend_request_accepted', { friendId: targetId });
           
         }
-
         // Add targetId to the requester's friends array
         if (!requester.friends.includes(targetId)) {
           requester.friends.push(targetId);
           io.to(requesterId).emit('friend_request_accepted', { friendId: targetId });
         }
-
         // Save both users' updated friends list
         await accepter.save();
         await requester.save();
-
-
        fetch('http://localhost:8080/postActivity', {
           method: 'POST',
           headers: {
@@ -371,12 +343,7 @@ io.on('connection', (socket) => {
               console.log('Activity posted:', data)
             })
             .catch((error) => console.error('Error posting activity:', error));
-             
-        
-
         // Emit the events to notify both users
-       
-
         socket.to(targetId).emit('friend_added', { friendId: requesterId });
 
         console.log(`Friendship established between ${requesterId} and ${targetId}`);
