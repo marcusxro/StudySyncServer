@@ -53,6 +53,8 @@ import BanUserRouter from './routes/BanUser.js';
 import RecoverUserRouter from './routes/RecoverUser.js';
 import GetContacts from './routes/GetContact.js';
 import GetReports from './routes/GetReport.js';
+import PostAnalytics from './routes/PostAnalytics.js';
+import GetAnalytics from './routes/GetAnalytics.js';
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -107,6 +109,8 @@ app.use('/banUser', BanUserRouter);
 app.use('/recoverUser', RecoverUserRouter);
 app.use('/getContacts', GetContacts);
 app.use('/getReports', GetReports);
+app.use('/postAnalytics', PostAnalytics);
+app.use('/getAnalytics', GetAnalytics);
 
 // const __dirname = path.dirname(new URL(import.meta.url).pathname);
 // app.use(express.static(path.join(__dirname, '../client'))); // Serve frontend files
@@ -316,7 +320,7 @@ io.on('connection', (socket) => {
         // Save both users' updated friends list
         await accepter.save();
         await requester.save();
-       fetch('http://localhost:8080/postActivity', {
+       fetch('https://studysyncserver.onrender.com/postActivity', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -334,7 +338,7 @@ io.on('connection', (socket) => {
           })
           .catch((error) => console.error('Error posting activity:', error));
            
-          fetch('http://localhost:8080/postActivity', {
+          fetch('https://studysyncserver.onrender.com/postActivity', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
