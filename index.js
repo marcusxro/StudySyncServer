@@ -48,6 +48,11 @@ import GetSchedule from './routes/GetSched.js';
 import SelectedUserSched from './routes/GetSchedByInvite.js';
 import AcceptSchedRouter from './routes/AcceptSched.js';
 import UpdateProfilePic from './routes/UpdateProfilePic.js';
+import ChangeUsernameRouter from './routes/ChangeUsername.js';
+import BanUserRouter from './routes/BanUser.js';
+import RecoverUserRouter from './routes/RecoverUser.js';
+import GetContacts from './routes/GetContact.js';
+import GetReports from './routes/GetReport.js';
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -55,7 +60,7 @@ app.use(express.json());
 // Middleware
 app.use(
   cors({
-    origin: 'http://127.0.0.1:5500',
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
@@ -97,8 +102,11 @@ app.use('/getSchedule', GetSchedule);
 app.use('/getScheduleByInvite', SelectedUserSched);
 app.use('/acceptSchedule', AcceptSchedRouter);
 app.use('/updateProfilePic', UpdateProfilePic);
-
-
+app.use('/changeUsername', ChangeUsernameRouter);
+app.use('/banUser', BanUserRouter);
+app.use('/recoverUser', RecoverUserRouter);
+app.use('/getContacts', GetContacts);
+app.use('/getReports', GetReports);
 
 // const __dirname = path.dirname(new URL(import.meta.url).pathname);
 // app.use(express.static(path.join(__dirname, '../client'))); // Serve frontend files

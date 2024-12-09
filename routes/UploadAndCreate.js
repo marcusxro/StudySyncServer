@@ -23,10 +23,11 @@ router.post('/', upload.single('profilePicture'), async (req, res) => {
 
     try {
         // Check if user already exists
-        const isFound = await accounts.findOne({ Uid });
-
+        const isFound = await accounts.findOne({ Uid: Uid });
+        console.log('Account found:', isFound);
         // If the user is found, update the account
         if (isFound) {
+            console.log('Account found:', isFound);
             // Update the user info (excluding profile picture initially)
             await accounts.updateOne({ Uid }, {
                 $set: {
@@ -39,26 +40,29 @@ router.post('/', upload.single('profilePicture'), async (req, res) => {
             });
 
             console.log('Account updated successfully');
-
+            console.log(req.file)
             // If a new profile picture is uploaded, update it
             if (req.file) {
-                const uploadResult = await cloudinary.default.uploader.upload(req.file.path, {
+                const uploadResult = await cloudinary.uploader.upload(req.file.path, {
                     folder: 'profile_pictures',
                     public_id: Uid,
                 });
-
-                // Update the profile picture URL in the database
-                await accounts.updateOne({ Uid }, {
-                    $set: {
-                        profilePictureUrl: uploadResult.secure_url
-                    }
-                });
+                console.log('ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp')
                 console.log('Profile picture updated successfully');
+                console.log(uploadResult)
+
+                console.log(uploadResult)
+                if(uploadResult) {
+                    
+                    return res.status(200).json({
+                        message: 'Profile picture updated successfully',
+                        url: uploadResult.secure_url,
+                    });
+                } else {
+                    return res.status(500).json({ message: 'Cloudinary upload failed' });
+                }
             }
 
-            // Return success response
-            req.io.emit('newAccount', { message: 'New account created', account });
-            return res.status(200).json({ message: 'Account updated successfully', account: isFound });
 
         } else {
             // If the user is not found, create a new account
@@ -76,7 +80,7 @@ router.post('/', upload.single('profilePicture'), async (req, res) => {
 
             // If a profile picture is uploaded, handle it
             if (req.file) {
-                const uploadResult = await cloudinary.default.uploader.upload(req.file.path, {
+                const uploadResult = await cloudinary.uploader.upload(req.file.path, {
                     folder: 'profile_pictures',
                     public_id: Uid,
                 });
@@ -88,8 +92,7 @@ router.post('/', upload.single('profilePicture'), async (req, res) => {
 
             console.log('New account created successfully');
 
-            // Emit event using `req.io`
-            req.io.emit('newAccount', { message: 'New account created', account });
+
 
             // Return success response
             req.io.emit('newAccount', { message: 'New account created', account });
